@@ -136,11 +136,7 @@ function processText() {
   const status = sums.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
   document.getElementById("summary").textContent =
-`찾기 합계: ${sums.f}
-섭외 합계: ${sums.i}
-만남 합계: ${sums.m}
-상따 합계: ${sums.t}
-성따 합계: ${sums.s}
+`종합:${sums.f}/ ${sums.i}/${sums.m}/${sums.t}/${sums.s}
 조총점수: ${sums.score}점
 
 목표: ${goal}점 / 현재: ${sums.score}점 ${status}`;
