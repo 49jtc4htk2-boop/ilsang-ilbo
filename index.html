@@ -19,23 +19,17 @@
     button {
       margin-top: 10px;
       padding: 10px 18px;
-      font-size: 16px; /* ✅ 글자 크기 키움 */
+      font-size: 16px;
       cursor: pointer;
     }
-    pre {
+    pre, .box {
       background: #fff;
       padding: 12px;
       margin-top: 15px;
       border: 1px solid #ddd;
       white-space: pre-wrap;
     }
-    .box {
-      background: #fff;
-      padding: 12px;
-      margin-top: 15px;
-      border: 1px solid #ccc;
-    }
-    .active {
+    .group-buttons button.active {
       background: #333;
       color: #fff;
     }
@@ -61,14 +55,19 @@
 <button onclick="processText()">결과 보기</button>
 <button onclick="copyResult()">복사하기</button>
 
+<h3>📋 복사해서 제출할 결과</h3>
 <pre id="output"></pre>
+
+<h3>✅ 확인용 요약</h3>
+<div class="box" id="summary"></div>
 
 <script>
 let selectedGroup = "1조";
 
-function selectGroup(num, btn) {
-  selectedGroup = num + "조";
-  document.querySelectorAll(".group-buttons button")
+function selectGroup(n, btn) {
+  selectedGroup = n + "조";
+  document
+    .querySelectorAll(".group-buttons button")
     .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
@@ -76,43 +75,63 @@ function selectGroup(num, btn) {
 function processText() {
   const lines = document.getElementById("input").value.split("\n");
 
-  let out = [];
-  let total = { f:0, i:0, m:0, t:0, s:0, score:0 };
-
-  out.push("🦾 도전 일상 특전대! 일일보고! 🦾");
-  out.push("");
-  out.push(selectedGroup);
-  out.push("");
-  out.push("이름/찾기(수치)/섭외(수치)/만남(수치)/상따(수치)/성따(수치)/총점");
+  let result = [];
+  let sum = { f:0, i:0, m:0, t:0, s:0, score:0 };
+  let names = 0;
 
   for (let line of lines) {
-    const trimmed = line.trim();
+    const t = line.trim();
 
-    // ✅ 제거 조건들
+    // ✅ 제거 대상
     if (
-      trimmed === "이름/0/0/0/0/0/0" ||
-      trimmed.startsWith("ex)") ||
-      !trimmed.includes("/")
+      t === "이름/0/0/0/0/0/0" ||
+      t.startsWith("ex)") ||
+      !t.includes("/")
     ) continue;
 
-    const [n,f,i,m,t,s] = trimmed.split("/").map(x => x.trim());
-    if (n === "이름") continue;
+    if (t.endsWith("조")) {
+      result.push(selectedGroup);
+      continue;
+    }
 
-    const ff=+f||0, ii=+i||0, mm=+m||0, tt=+t||0, ss=+s||0;
-    const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
+    if (t.startsWith("=> 조총점수")) {
+      continue;
+    }
 
-    total.f+=ff; total.i+=ii; total.m+=mm;
-    total.t+=tt; total.s+=ss; total.score+=score;
+    const parts = t.split("/");
+    if (parts.length === 7 && parts[0] !== "이름") {
+      const [n,f,i,m,t2,s2,_] = parts;
+      const ff=+f, ii=+i, mm=+m, tt=+t2, ss=+s2;
+      const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-    out.push(`${n}/${ff}/${ii}/${mm}/${tt}/${ss}/${score}`);
+      sum.f+=ff; sum.i+=ii; sum.m+=mm;
+      sum.t+=tt; sum.s+=ss; sum.score+=score;
+      names++;
+
+      result.push(`${n}/${ff}/${ii}/${mm}/${tt}/${ss}/${score}`);
+    } else {
+      result.push(line);
+    }
   }
 
-  out.push("");
-  out.push(
-    `합계/${total.f}/${total.i}/${total.m}/${total.t}/${total.s}/${total.score}`
+  // ✅ 조총점수 줄 다시 삽입
+  const targetIndex = result.findIndex(l => l.includes("🦾"));
+  result.splice(
+    targetIndex + 3,
+    0,
+    "",
+    `=> 조총점수 : ${sum.score}점`,
+    ""
   );
 
-  document.getElementById("output").textContent = out.join("\n");
+  document.getElementById("output").textContent = result.join("\n");
+
+  const goal = names * 7;
+  const status = sum.score >= goal ? "✅ 달성" : "⚠️ 미달";
+
+  document.getElementById("summary").textContent =
+`합계/${sum.f}/${sum.i}/${sum.m}/${sum.t}/${sum.s}/${sum.score}
+목표: ${goal}점 / 현재: ${sum.score}점 ${status}`;
 }
 
 function copyResult() {
