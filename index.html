@@ -112,7 +112,6 @@ function processText() {
 
     if (t.endsWith("조")) {
       result.push(selectedLabel);
-      result.push("");
       continue;
     }
     if (t.startsWith("=> 조총점수")) continue;
@@ -155,7 +154,6 @@ function processText() {
     result.splice(
       idx + people + 2,
       0,
-      "",
       `=> 조총점수 : ${sum.score}점`
     );
   }
