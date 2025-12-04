@@ -2,22 +2,23 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>🦾 도전 일상 특전대 일일보고 계산기</title>
+  <title>🦾 도전 일상 특전대 일일보고 자동 계산기</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: system-ui, sans-serif;
-      margin: 20px;
       background: #f7f7f7;
+      margin: 20px;
     }
     textarea {
       width: 100%;
       height: 260px;
-      font-size: 14px;
       padding: 10px;
+      font-size: 14px;
       box-sizing: border-box;
     }
     button {
-      margin-top: 10px;
+      margin: 6px 4px 0 0;
       padding: 10px 18px;
       font-size: 16px;
       cursor: pointer;
@@ -25,12 +26,12 @@
     pre, .box {
       background: #fff;
       padding: 12px;
-      margin-top: 15px;
-      border: 1px solid #ddd;
+      margin-top: 12px;
+      border: 1px solid #ccc;
       white-space: pre-wrap;
     }
     .group-buttons button.active {
-      background: #333;
+      background: #222;
       color: #fff;
     }
   </style>
@@ -41,24 +42,24 @@
 
 <div class="group-buttons">
   <strong>조 선택:</strong>
-  <button class="active" onclick="selectGroup(1, this)">1조</button>
-  <button onclick="selectGroup(2, this)">2조</button>
-  <button onclick="selectGroup(3, this)">3조</button>
-  <button onclick="selectGroup(4, this)">4조</button>
-  <button onclick="selectGroup(5, this)">5조</button>
+  <button class="active" onclick="selectGroup(1,this)">1조</button>
+  <button onclick="selectGroup(2,this)">2조</button>
+  <button onclick="selectGroup(3,this)">3조</button>
+  <button onclick="selectGroup(4,this)">4조</button>
+  <button onclick="selectGroup(5,this)">5조</button>
 </div>
 
 <br>
 
-<textarea id="input" placeholder="원문 그대로 붙여넣기"></textarea>
+<textarea id="input" placeholder="원본 양식을 그대로 붙여넣으세요"></textarea>
 <br>
 <button onclick="processText()">결과 보기</button>
 <button onclick="copyResult()">복사하기</button>
 
-<h3>📋 결과 </h3>
+<h3>📋 복사해서 제출할 결과</h3>
 <pre id="output"></pre>
 
-<h3>✅ 확인용 요약</h3>
+<h3>✅ 확인용 요약 (제출 ❌)</h3>
 <div class="box" id="summary"></div>
 
 <script>
@@ -66,8 +67,7 @@ let selectedGroup = "1조";
 
 function selectGroup(n, btn) {
   selectedGroup = n + "조";
-  document
-    .querySelectorAll(".group-buttons button")
+  document.querySelectorAll(".group-buttons button")
     .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
@@ -76,68 +76,82 @@ function processText() {
   const lines = document.getElementById("input").value.split("\n");
 
   let result = [];
-  let sum = { f:0, i:0, m:0, t:0, s:0, score:0 };
-  let names = 0;
+  let sums = { f:0, i:0, m:0, t:0, s:0, score:0 };
+  let people = 0;
 
   for (let line of lines) {
+    const raw = line;
     const t = line.trim();
 
-    // ✅ 제거 대상
+    // 필요 없는 계산용 줄 제거
     if (
       t === "이름/0/0/0/0/0/0" ||
-      t.startsWith("ex)") ||
-      !t.includes("/")
+      t.startsWith("ex)") && t.includes("/0/0/0/0/0") ||
+      t.startsWith("합계/")
     ) continue;
 
+    // 조 표시 → 버튼 선택값으로 교체
     if (t.endsWith("조")) {
+      result.push("");
       result.push(selectedGroup);
+      result.push("");
       continue;
     }
 
+    // 조총점수 줄은 나중에 다시 추가
     if (t.startsWith("=> 조총점수")) {
       continue;
     }
 
-    const parts = t.split("/");
-    if (parts.length === 7 && parts[0] !== "이름") {
-      const [n,f,i,m,t2,s2,_] = parts;
+    // 사람 데이터 (출력은 그대로, 계산은 내부에서만)
+    if (t.includes("/") && t.split("/").length === 6 && !t.startsWith("이름")) {
+      const [name,f,i,m,t2,s2] = t.split("/");
       const ff=+f, ii=+i, mm=+m, tt=+t2, ss=+s2;
       const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-      sum.f+=ff; sum.i+=ii; sum.m+=mm;
-      sum.t+=tt; sum.s+=ss; sum.score+=score;
-      names++;
+      sums.f+=ff; sums.i+=ii; sums.m+=mm;
+      sums.t+=tt; sums.s+=ss; sums.score+=score;
+      people++;
 
-      result.push(`${n}/${ff}/${ii}/${mm}/${tt}/${ss}/${score}`);
-    } else {
-      result.push(line);
+      result.push(raw);
+      continue;
     }
+
+    result.push(raw);
   }
 
-  // ✅ 조총점수 줄 다시 삽입
-  const targetIndex = result.findIndex(l => l.includes("🦾"));
+  // ▶ 조총점수 삽입
+  const insertIndex = result.findIndex(l => l.includes("이름/찾기"));
   result.splice(
-    targetIndex + 3,
+    insertIndex + people + 2,
     0,
     "",
-    `=> 조총점수 : ${sum.score}점`,
+    `=> 조총점수 : ${sums.score}점`,
     ""
   );
 
   document.getElementById("output").textContent = result.join("\n");
 
-  const goal = names * 7;
-  const status = sum.score >= goal ? "✅ 달성" : "⚠️ 미달";
+  const goal = people * 7;
+  const status = sums.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
   document.getElementById("summary").textContent =
-`합계/${sum.f}/${sum.i}/${sum.m}/${sum.t}/${sum.s}/${sum.score}
-목표: ${goal}점 / 현재: ${sum.score}점 ${status}`;
+`찾기 합계: ${sums.f}
+섭외 합계: ${sums.i}
+만남 합계: ${sums.m}
+상따 합계: ${sums.t}
+성따 합계: ${sums.s}
+조총점수: ${sums.score}점
+
+목표: ${goal}점 / 현재: ${sums.score}점 ${status}`;
 }
 
 function copyResult() {
-  navigator.clipboard.writeText(
-    document.getElementById("output").textContent
-  ).then(() => alert("복사되었습니다 ✅"));
+  const text = document.getElementById("output").textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    alert("복사되었습니다 ✅");
+  });
 }
 </script>
 
