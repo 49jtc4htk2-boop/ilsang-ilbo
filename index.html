@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>🦾 도전 일상 특전대 일일보고 자동 계산기</title>
+  <title>🦾 도전 일상 특전대! 일일보고 계산기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -51,8 +51,9 @@
 
 <br>
 
-<textarea id="input" placeholder="일보를 그대로 붙여넣으세요"></textarea>
+<textarea id="input" placeholder="원본 일일보고 양식을 그대로 붙여넣으세요"></textarea>
 <br>
+
 <button onclick="processText()">결과 보기</button>
 <button onclick="copyResult()">복사하기</button>
 
@@ -65,6 +66,7 @@
 <script>
 let selectedGroup = "1조";
 
+/* 조 선택 */
 function selectGroup(n, btn) {
   selectedGroup = n + "조";
   document.querySelectorAll(".group-buttons button")
@@ -72,25 +74,41 @@ function selectGroup(n, btn) {
   btn.classList.add("active");
 }
 
+/* 앞에 있는 숫자만 추출 */
+function getFrontNumber(value) {
+  const match = value.trim().match(/^(\d+(\.\d+)?)/);
+  return match ? parseFloat(match[1]) : 0;
+}
+
+/* 괄호 안 숫자 합계 */
+function getBracketSum(value) {
+  const match = value.match(/\(([^)]+)\)/);
+  if (!match) return 0;
+  const nums = match[1].match(/\d+(\.\d+)?/g);
+  if (!nums) return 0;
+  return nums.reduce((a, b) => a + parseFloat(b), 0);
+}
+
 function processText() {
   const lines = document.getElementById("input").value.split("\n");
 
   let result = [];
-  let sums = { f:0, i:0, m:0, t:0, s:0, score:0 };
+  let sum = { f:0, i:0, m:0, t:0, s:0, score:0 };
   let people = 0;
+  let warnings = [];
 
   for (let line of lines) {
     const raw = line;
     const t = line.trim();
 
-    // 필요 없는 계산용 줄 제거
+    // 계산용/불필요 줄 제거
     if (
       t === "이름/0/0/0/0/0/0" ||
-      t.startsWith("ex)") && t.includes("/0/0/0/0/0") ||
+      (t.startsWith("ex)") && t.includes("/0/0/0/0/0")) ||
       t.startsWith("합계/")
     ) continue;
 
-    // 조 표시 → 버튼 선택값으로 교체
+    // 조 표시 → 선택값으로 교체
     if (t.endsWith("조")) {
       result.push("");
       result.push(selectedGroup);
@@ -98,48 +116,78 @@ function processText() {
       continue;
     }
 
-    // 조총점수 줄은 나중에 다시 추가
-    if (t.startsWith("=> 조총점수")) {
-      continue;
-    }
+    // 조총점수 줄 제거 (나중에 다시 삽입)
+    if (t.startsWith("=> 조총점수")) continue;
 
-    // 사람 데이터 (출력은 그대로, 계산은 내부에서만)
+    // 사람 데이터
     if (t.includes("/") && t.split("/").length === 6 && !t.startsWith("이름")) {
       const [name,f,i,m,t2,s2] = t.split("/");
-      const ff=+f, ii=+i, mm=+m, tt=+t2, ss=+s2;
+
+      const fields = [
+        ["찾기", f],
+        ["섭외", i],
+        ["만남", m],
+        ["상따", t2],
+        ["성따", s2],
+      ];
+
+      fields.forEach(([label, val]) => {
+        const front = getFrontNumber(val);
+        const bracket = getBracketSum(val);
+        if (bracket > 0 && Math.abs(front - bracket) > 0.001) {
+          warnings.push(
+            `- ${name} / ${label}칸에 수치의 합계가 틀립니다.`
+          );
+        }
+      });
+
+      const ff = getFrontNumber(f);
+      const ii = getFrontNumber(i);
+      const mm = getFrontNumber(m);
+      const tt = getFrontNumber(t2);
+      const ss = getFrontNumber(s2);
+
       const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-      sums.f+=ff; sums.i+=ii; sums.m+=mm;
-      sums.t+=tt; sums.s+=ss; sums.score+=score;
+      sum.f += ff;
+      sum.i += ii;
+      sum.m += mm;
+      sum.t += tt;
+      sum.s += ss;
+      sum.score += score;
       people++;
 
-      result.push(raw);
+      result.push(raw); // 출력은 원본 그대로
       continue;
     }
 
+    // 나머지는 그대로 유지
     result.push(raw);
   }
 
-  // ▶ 조총점수 삽입
-  const insertIndex = result.findIndex(l => l.includes("이름/찾기"));
-  result.splice(
-    insertIndex + people + 2,
-    0,
-    "",
-    `=> 조총점수 : ${sums.score}점`,
-    ""
-  );
+  // 조총점수 삽입
+  const headerIndex = result.findIndex(l => l.includes("이름/찾기"));
+  if (headerIndex !== -1) {
+    result.splice(
+      headerIndex + people + 2,
+      0,
+      "",
+      `=> 조총점수 : ${sum.score}점`,
+      ""
+    );
+  }
 
   document.getElementById("output").textContent = result.join("\n");
 
   const goal = people * 7;
-  const status = sums.score >= goal ? "✅ 달성" : "⚠️ 미달";
+  const status = sum.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
   document.getElementById("summary").textContent =
-`✔️ 종합:${sums.f}/${sums.i}/${sums.m}/${sums.t}/${sums.s}//${sums.score}
-🔥 조총점수: ${sums.score}점
-
-목표: ${goal}점 / 현재: ${sums.score}점 ${status}`;
+`조총점수: ${sum.score}점
+목표: ${goal}점 / 현재: ${sum.score}점 ${status}` +
+(warnings.length
+  ? `\n\n⚠️ 수치 확인 필요\n${warnings.join("\n")}`
+  : "");
 }
 
 function copyResult() {
