@@ -67,26 +67,21 @@
 <script>
 let selectedLabel = "1조";
 
-/* 조 선택 */
 function selectGroup(label, btn) {
   selectedLabel = label;
-  document.querySelectorAll(".group-buttons button").forEach(
-    b => b.classList.remove("active")
-  );
+  document.querySelectorAll(".group-buttons button")
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
-/* 최종 선택 */
 function selectFinal(btn) {
   const now = new Date();
   selectedLabel = `${now.getMonth()+1}월 ${now.getDate()}일 최종`;
-  document.querySelectorAll(".group-buttons button").forEach(
-    b => b.classList.remove("active")
-  );
+  document.querySelectorAll(".group-buttons button")
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
-/* 숫자 추출 */
 function getFrontNumber(v) {
   const m = v.trim().match(/^(\d+(\.\d+)?)/);
   return m ? parseFloat(m[1]) : 0;
@@ -145,12 +140,14 @@ function processText() {
       const tt = getFrontNumber(t2);
       const ss = getFrontNumber(s2);
 
-      sum.f+=ff; sum.i+=ii; sum.m+=mm; sum.t+=tt; sum.s+=ss;
       const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
-      sum.score += score;
 
+      sum.f+=ff; sum.i+=ii; sum.m+=mm; sum.t+=tt; sum.s+=ss;
+      sum.score += score;
       people++;
-      result.push(raw);
+
+      // ✅ 개인 총점수 추가
+      result.push(`${name}/${f}/${i}/${m}/${t2}/${s2}/${score}`);
       continue;
     }
 
@@ -181,7 +178,7 @@ function processText() {
 (warnings.length ? `\n\n⚠️ 수치 확인 필요\n${warnings.join("\n")}` : "");
 }
 
-function copyResult(){
+function copyResult() {
   const t = document.getElementById("output").textContent;
   if (t) navigator.clipboard.writeText(t);
 }
