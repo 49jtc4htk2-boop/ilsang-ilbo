@@ -136,8 +136,8 @@ function processText() {
   const status = sums.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
   document.getElementById("summary").textContent =
-`종합:${sums.f}/ ${sums.i}/${sums.m}/${sums.t}/${sums.s}
-조총점수: ${sums.score}점
+`✔️ 종합:${sums.f}/${sums.i}/${sums.m}/${sums.t}/${sums.s}//${sums.score}
+🔥 조총점수: ${sums.score}점
 
 목표: ${goal}점 / 현재: ${sums.score}점 ${status}`;
 }
