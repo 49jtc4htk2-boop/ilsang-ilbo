@@ -122,7 +122,7 @@ function processText() {
     }
 
     /* ✅ 사람 줄 처리 */
-    if (t.includes("/") && t.split("/").length === 6 && !t.startsWith("이름")) {
+    if (t.includes("/") && t.split("/").length >= 6 && !t.startsWith("이름")) {
       const [name,f,i,m,t2,s2] = t.split("/");
 
       [["찾기",f],["섭외",i],["만남",m],["상따",t2],["성따",s2]].forEach(
