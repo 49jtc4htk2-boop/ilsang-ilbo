@@ -51,13 +51,14 @@
 </div>
 
 <br>
+
 <textarea id="input" placeholder="일일보고 양식을 그대로 붙여넣으세요"></textarea>
 <br>
 
 <button onclick="processText()">결과 보기</button>
 <button onclick="copyResult()">복사하기</button>
 
-<h3>📋 결과 (복사본)</h3>
+<h3>📋 결과</h3>
 <pre id="output"></pre>
 
 <h3>✅ 확인용 요약</h3>
@@ -92,26 +93,44 @@ function getBracketSum(v) {
 }
 
 function processText() {
-  const inputText = document.getElementById("input").value;
-  let outputText = inputText;
+  const lines = document.getElementById("input").value.split("\n");
 
+  let result = [];
   let sum = { f:0,i:0,m:0,t:0,s:0,score:0 };
   let people = 0;
+  let totalPeople = 0;
   let warnings = [];
+  let personLineIndexes = [];
 
-  const lines = inputText.split("\n");
-
-  lines.forEach(line => {
+  for (let line of lines) {
+    const raw = line;
     const t = line.trim();
+
+    if (t.endsWith("조")) {
+      result.push(selectedLabel);
+      continue;
+    }
+
+    if (
+      t === "이름/0/0/0/0/0/0" ||
+      (t.startsWith("ex)") && t.includes("/0/0/0/0/0")) ||
+      t.startsWith("합계/") ||
+      t.startsWith("=> 조총점수")
+    ) {
+      continue;
+    }
+
     if (t.includes("/") && t.split("/").length === 6 && !t.startsWith("이름")) {
       const [name,f,i,m,t2,s2] = t.split("/");
+
+      totalPeople++;
 
       [["찾기",f],["섭외",i],["만남",m],["상따",t2],["성따",s2]].forEach(
         ([label,val]) => {
           const front = getFrontNumber(val);
           const br = getBracketSum(val);
           if (br > 0 && Math.abs(front - br) > 0.001) {
-            warnings.push(`- ${name} / ${label}칸에 수치의 합계가 틀립니다.`);
+            warnings.push(`- ${name} / ${label} 수치 합계 불일치`);
           }
         }
       );
@@ -121,28 +140,30 @@ function processText() {
       const mm = getFrontNumber(m);
       const tt = getFrontNumber(t2);
       const ss = getFrontNumber(s2);
-
       const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-      sum.f+=ff; sum.i+=ii; sum.m+=mm; sum.t+=tt; sum.s+=ss; sum.score+=score;
-      people++;
+      if (score > 0) people++;
 
-      outputText = outputText.replace(
-        line,
-        `${name}/${f}/${i}/${m}/${t2}/${s2}/${score}`
-      );
+      sum.f+=ff; sum.i+=ii; sum.m+=mm; sum.t+=tt; sum.s+=ss;
+      sum.score += score;
+
+      personLineIndexes.push(result.length);
+      result.push(`${name}/${f}/${i}/${m}/${t2}/${s2}/${score}`);
+      continue;
     }
-  });
 
-  outputText = outputText.replace(/^\d조/m, selectedLabel);
-  outputText = outputText.replace(
-    /^=> 조총점수\s*:.*/m,
-    `=> 조총점수 : ${sum.score}점`
-  );
+    result.push(raw);
+  }
 
-  document.getElementById("output").textContent = outputText;
+  // ✅ 조총점수 위치 고정
+  if (personLineIndexes.length > 0) {
+    const last = personLineIndexes[personLineIndexes.length - 1];
+    result.splice(last + 1, 0, "", `=> 조총점수 : ${sum.score}점`, "");
+  }
 
-  const goal = people * 7;
+  document.getElementById("output").textContent = result.join("\n");
+
+  const goal = totalPeople * 7;
   const status = sum.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
   document.getElementById("summary").textContent =
@@ -156,8 +177,11 @@ function processText() {
 function copyResult() {
   const t = document.getElementById("output").textContent;
   if (!t) return;
+
   navigator.clipboard.writeText(t).then(() => {
     alert("✅ 복사가 완료되었습니다!");
+  }).catch(() => {
+    alert("❌ 복사 실패 – 다시 시도해주세요.");
   });
 }
 </script>
