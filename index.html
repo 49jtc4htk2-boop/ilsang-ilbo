@@ -149,14 +149,23 @@ function processText() {
     result.push(raw);
   }
 
-  const idx = result.findIndex(l => l.includes("이름/찾기"));
-  if (idx !== -1) {
-    result.splice(
-      idx + people + 2,
-      0,
-      `=> 조총점수 : ${sum.score}점`
-    );
+  // 사람 줄의 마지막 위치 찾기
+let lastPersonIndex = -1;
+for (let i = result.length - 1; i >= 0; i--) {
+  if (result[i].includes("/") && result[i].split("/").length === 7) {
+    lastPersonIndex = i;
+    break;
   }
+}
+
+if (lastPersonIndex !== -1) {
+  result.splice(
+    lastPersonIndex + 1,
+    0,
+    "",
+    `=> 조총점수 : ${sum.score}점`
+  );
+}
   document.getElementById("output").textContent = result.join("\n");
 
   const goal = people * 7;
