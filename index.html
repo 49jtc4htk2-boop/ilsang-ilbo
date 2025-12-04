@@ -29,12 +29,15 @@
       background-color: #333;
       color: #fff;
     }
-    pre {
+    pre, .notice {
       background: #fff;
       padding: 12px;
       white-space: pre-wrap;
       margin-top: 15px;
       border: 1px solid #ddd;
+    }
+    .notice {
+      font-weight: bold;
     }
   </style>
 </head>
@@ -44,6 +47,7 @@
 
 <div class="group-buttons">
   <strong>조 선택 :</strong>
+  <button onclick="selectGroup(0, this)">0조</button>
   <button onclick="selectGroup(1, this)">1조</button>
   <button onclick="selectGroup(2, this)">2조</button>
   <button onclick="selectGroup(3, this)">3조</button>
@@ -53,15 +57,16 @@
 
 <br>
 
-<textarea id="input" placeholder="이름/찾기/섭외/만남/상따/성따/? 형식으로 그대로 붙여넣기"></textarea>
+<textarea id="input" placeholder="원문 그대로 붙여넣기"></textarea>
 <br />
 <button onclick="processText()">결과 보기</button>
 <button onclick="copyResult()">복사하기</button>
 
 <pre id="output"></pre>
+<div id="notice" class="notice"></div>
 
 <script>
-let selectedGroup = "미선택";
+let selectedGroup = "0조";
 
 function selectGroup(num, btn) {
   selectedGroup = `${num}조`;
@@ -72,57 +77,69 @@ function selectGroup(num, btn) {
 }
 
 function processText() {
-  const input = document.getElementById("input").value;
-  if (!input.trim()) return;
-
-  const lines = input
-    .split("\n")
-    .filter(line => line.trim() !== "");
+  const lines = document.getElementById("input").value.split("\n");
 
   let result = [];
+  let memberCount = 0;
   let totalFind = 0, totalInvite = 0, totalMeet = 0, totalTop = 0, totalSex = 0;
   let totalScore = 0;
 
-  lines.forEach(line => {
+  // ✅ 헤더
+  result.push("🦾 도전 일상 특전대! 일일보고! 🦾");
+  result.push(selectedGroup);
+
+  for (let line of lines) {
+    if (!line.includes("/")) {
+      result.push(line);
+      continue;
+    }
+
+    // ✅ 0/0/0/0/0/0 제거
+    if (line.startsWith("이름/0/0/0/0/0/0")) continue;
+
     const parts = line.split("/");
     if (parts.length < 6) {
       result.push(line);
-      return;
+      continue;
     }
 
-    const name = parts[0].trim();
-    const find = parseFloat(parts[1]) || 0;
-    const invite = parseFloat(parts[2]) || 0;
-    const meet = parseFloat(parts[3]) || 0;
-    const top = parseFloat(parts[4]) || 0;
-    const sex = parseFloat(parts[5]) || 0;
+    // 개인 점수 줄
+    if (!line.startsWith("합계") && !line.startsWith("=>")) {
+      const name = parts[0];
+      const f = +parts[1] || 0;
+      const i = +parts[2] || 0;
+      const m = +parts[3] || 0;
+      const t = +parts[4] || 0;
+      const s = +parts[5] || 0;
+      const score = f + i*2 + m*3 + t*4 + s*5;
 
-    const score = find + invite*2 + meet*3 + top*4 + sex*5;
+      totalFind += f;
+      totalInvite += i;
+      totalMeet += m;
+      totalTop += t;
+      totalSex += s;
+      totalScore += score;
+      memberCount++;
 
-    totalFind += find;
-    totalInvite += invite;
-    totalMeet += meet;
-    totalTop += top;
-    totalSex += sex;
-    totalScore += score;
-
-    result.push(`${name}/${find}/${invite}/${meet}/${top}/${sex}/${score}`);
-  });
-
-  const memberCount = lines.length;
-  const goalScore = memberCount * 7;
-
-  result.push(
-    `합계/${totalFind}/${totalInvite}/${totalMeet}/${totalTop}/${totalSex}/${totalScore}`
-  );
-
-  if (totalScore >= goalScore) {
-    result.push(`✅ 달성 (${selectedGroup} | 목표 ${goalScore}점 / 달성 ${totalScore}점)`);
-  } else {
-    result.push(`⚠️ 미달 (${selectedGroup} | 목표 ${goalScore}점 / 현재 ${totalScore}점)`);
+      result.push(`${name}/${f}/${i}/${m}/${t}/${s}/${score}`);
+    }
   }
 
+  // ✅ 종합 (한 줄 띄우기)
+  result.push("");
+  result.push(`합계/${totalFind}/${totalInvite}/${totalMeet}/${totalTop}/${totalSex}/${totalScore}`);
+  result.push(`=> 조총점수 : ${totalScore}점`);
+
   document.getElementById("output").textContent = result.join("\n");
+
+  // ✅ 안내 메시지 (복사 안 됨)
+  const goal = memberCount * 7;
+  const notice = document.getElementById("notice");
+  if (totalScore >= goal) {
+    notice.textContent = `✅ 달성 (${selectedGroup} | 목표 ${goal}점 / 달성 ${totalScore}점)`;
+  } else {
+    notice.textContent = `⚠️ 미달 (${selectedGroup} | 목표 ${goal}점 / 현재 ${totalScore}점)`;
+  }
 }
 
 function copyResult() {
