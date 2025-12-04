@@ -18,7 +18,8 @@
     }
     button {
       margin-top: 10px;
-      padding: 8px 14px;
+      padding: 10px 18px;
+      font-size: 16px; /* ✅ 글자 크기 키움 */
       cursor: pointer;
     }
     pre {
@@ -44,9 +45,9 @@
 
 <h2>🦾 도전 일상 특전대! 일일보고 자동 계산기</h2>
 
-<div>
+<div class="group-buttons">
   <strong>조 선택:</strong>
-  <button onclick="selectGroup(1, this)">1조</button>
+  <button class="active" onclick="selectGroup(1, this)">1조</button>
   <button onclick="selectGroup(2, this)">2조</button>
   <button onclick="selectGroup(3, this)">3조</button>
   <button onclick="selectGroup(4, this)">4조</button>
@@ -62,14 +63,13 @@
 
 <pre id="output"></pre>
 
-<div id="summary" class="box"></div>
-
 <script>
 let selectedGroup = "1조";
 
 function selectGroup(num, btn) {
   selectedGroup = num + "조";
-  document.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".group-buttons button")
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
@@ -86,40 +86,39 @@ function processText() {
   out.push("이름/찾기(수치)/섭외(수치)/만남(수치)/상따(수치)/성따(수치)/총점");
 
   for (let line of lines) {
-    if (!line.includes("/") || line.startsWith("이름/0")) continue;
+    const trimmed = line.trim();
 
-    const [n,f,i,m,t,s] = line.split("/").map(x=>x.trim());
+    // ✅ 제거 조건들
+    if (
+      trimmed === "이름/0/0/0/0/0/0" ||
+      trimmed.startsWith("ex)") ||
+      !trimmed.includes("/")
+    ) continue;
+
+    const [n,f,i,m,t,s] = trimmed.split("/").map(x => x.trim());
+    if (n === "이름") continue;
+
     const ff=+f||0, ii=+i||0, mm=+m||0, tt=+t||0, ss=+s||0;
     const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-    total.f+=ff; total.i+=ii; total.m+=mm; total.t+=tt; total.s+=ss; total.score+=score;
+    total.f+=ff; total.i+=ii; total.m+=mm;
+    total.t+=tt; total.s+=ss; total.score+=score;
+
     out.push(`${n}/${ff}/${ii}/${mm}/${tt}/${ss}/${score}`);
   }
 
   out.push("");
-  out.push(`=> 조총점수 : ${total.score}점`);
-  out.push("");
-  out.push("ex) 정민성/1(홍길동.5 정동영.5)/1.5(강민서.5 김선.5 문요한.5)/0/0/1(현승화1)/9점");
-  out.push("");
-  out.push("* 찾기(1점) 섭외(2점) 만남(3점) 상따(4점) 성따(5점)");
-  out.push("* 찾섭 동시에 올리지 못합니다! 찾섭동시 인원인 경우 섭외로만 올려주셔용~");
-  out.push("* 매일 오후10시 일보 마감");
+  out.push(
+    `합계/${total.f}/${total.i}/${total.m}/${total.t}/${total.s}/${total.score}`
+  );
 
   document.getElementById("output").textContent = out.join("\n");
-
-  document.getElementById("summary").textContent =
-`합계
-찾기: ${total.f}
-섭외: ${total.i}
-만남: ${total.m}
-상따: ${total.t}
-성따: ${total.s}
-총점: ${total.score}점`;
 }
 
 function copyResult() {
-  navigator.clipboard.writeText(document.getElementById("output").textContent)
-    .then(()=>alert("복사되었습니다 ✅"));
+  navigator.clipboard.writeText(
+    document.getElementById("output").textContent
+  ).then(() => alert("복사되었습니다 ✅"));
 }
 </script>
 
