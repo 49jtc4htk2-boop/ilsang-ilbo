@@ -111,7 +111,6 @@ function processText() {
     ) continue;
 
     if (t.endsWith("조")) {
-      result.push("");
       result.push(selectedLabel);
       result.push("");
       continue;
@@ -157,8 +156,7 @@ function processText() {
       idx + people + 2,
       0,
       "",
-      `=> 조총점수 : ${sum.score}점`,
-      ""
+      `=> 조총점수 : ${sum.score}점`
     );
   }
   document.getElementById("output").textContent = result.join("\n");
