@@ -19,8 +19,8 @@
     }
     button {
       margin: 6px 4px 0 0;
-      padding: 10px 18px;
-      font-size: 14px;
+      padding: 9px 16px;
+      font-size: 13.5px;
       cursor: pointer;
     }
     pre, .box {
@@ -67,19 +67,23 @@
 <script>
 let selectedLabel = "1조";
 
+/* ---------- 조 선택 ---------- */
 function selectGroup(label, btn) {
   selectedLabel = label;
-  document.querySelectorAll(".group-buttons button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".group-buttons button")
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
 function selectFinal(btn) {
-  const d = new Date();
-  selectedLabel = `${d.getMonth()+1}월 ${d.getDate()}일 최종`;
-  document.querySelectorAll(".group-buttons button").forEach(b => b.classList.remove("active"));
+  const now = new Date();
+  selectedLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 최종`;
+  document.querySelectorAll(".group-buttons button")
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
+/* ---------- 숫자 유틸 ---------- */
 function getFrontNumber(v) {
   const m = v.trim().match(/^(\d+(\.\d+)?)/);
   return m ? parseFloat(m[1]) : 0;
@@ -89,48 +93,44 @@ function getBracketSum(v) {
   const m = v.match(/\(([^)]+)\)/);
   if (!m) return 0;
   const nums = m[1].match(/(\d*\.?\d+)/g);
-  return nums ? nums.reduce((a,b)=>a+parseFloat(b),0) : 0;
+  return nums ? nums.reduce((a, b) => a + parseFloat(b), 0) : 0;
 }
 
+/* ---------- 메인 처리 ---------- */
 function processText() {
   const lines = document.getElementById("input").value.split("\n");
 
   let result = [];
-  let sum = { f:0,i:0,m:0,t:0,s:0,score:0 };
+  let sum = { f:0, i:0, m:0, t:0, s:0, score:0 };
   let people = 0;
-  let totalPeople = 0;
   let warnings = [];
-  let personLineIndexes = [];
 
   for (let line of lines) {
     const raw = line;
     const t = line.trim();
 
+    /* ✅ 조 라벨만 교체 */
     if (t.endsWith("조")) {
       result.push(selectedLabel);
       continue;
     }
 
-    if (
-      t === "이름/0/0/0/0/0/0" ||
-      (t.startsWith("ex)") && t.includes("/0/0/0/0/0")) ||
-      t.startsWith("합계/") ||
-      t.startsWith("=> 조총점수")
-    ) {
+    /* ✅ 조총점수 위치 유지 + 값만 채움 */
+    if (t.startsWith("=> 조총점수")) {
+      result.push(`=> 조총점수 : ${sum.score}점`);
       continue;
     }
 
+    /* ✅ 사람 줄 처리 */
     if (t.includes("/") && t.split("/").length === 6 && !t.startsWith("이름")) {
       const [name,f,i,m,t2,s2] = t.split("/");
-
-      totalPeople++;
 
       [["찾기",f],["섭외",i],["만남",m],["상따",t2],["성따",s2]].forEach(
         ([label,val]) => {
           const front = getFrontNumber(val);
           const br = getBracketSum(val);
           if (br > 0 && Math.abs(front - br) > 0.001) {
-            warnings.push(`- ${name} / ${label} 수치 합계 불일치`);
+            warnings.push(`- ${name} / ${label}칸에 수치의 합계가 틀립니다.`);
           }
         }
       );
@@ -140,48 +140,52 @@ function processText() {
       const mm = getFrontNumber(m);
       const tt = getFrontNumber(t2);
       const ss = getFrontNumber(s2);
+
       const score = ff + ii*2 + mm*3 + tt*4 + ss*5;
 
-      if (score > 0) people++;
-
-      sum.f+=ff; sum.i+=ii; sum.m+=mm; sum.t+=tt; sum.s+=ss;
+      sum.f += ff;
+      sum.i += ii;
+      sum.m += mm;
+      sum.t += tt;
+      sum.s += ss;
       sum.score += score;
+      people++;
 
-      personLineIndexes.push(result.length);
       result.push(`${name}/${f}/${i}/${m}/${t2}/${s2}/${score}`);
       continue;
     }
 
+    /* ✅ 그 외 모든 줄은 원본 그대로 */
     result.push(raw);
-  }
-
-  // ✅ 조총점수 위치 고정
-  if (personLineIndexes.length > 0) {
-    const last = personLineIndexes[personLineIndexes.length - 1];
-    result.splice(last + 1, 0, "", `=> 조총점수 : ${sum.score}점`, "");
   }
 
   document.getElementById("output").textContent = result.join("\n");
 
-  const goal = totalPeople * 7;
+  /* ---------- 확인용 요약 ---------- */
+  const goal = people * 7;
   const status = sum.score >= goal ? "✅ 달성" : "⚠️ 미달";
 
-  document.getElementById("summary").textContent =
+  let summaryText =
 `종합 : ${sum.f}/${sum.i}/${sum.m}/${sum.t}/${sum.s}//${sum.score}
 
 조총점수: ${sum.score}점
-목표: ${goal}점 / 현재: ${sum.score}점 ${status}` +
-(warnings.length ? `\n\n⚠️ 수치 확인 필요\n${warnings.join("\n")}` : "");
+목표: ${goal}점 / 현재: ${sum.score}점 ${status}`;
+
+  if (warnings.length) {
+    summaryText += `\n\n⚠️ 수치 확인 필요\n${warnings.join("\n")}`;
+  }
+
+  document.getElementById("summary").textContent = summaryText;
 }
 
+/* ---------- 복사 ---------- */
 function copyResult() {
   const t = document.getElementById("output").textContent;
   if (!t) return;
-
   navigator.clipboard.writeText(t).then(() => {
     alert("✅ 복사가 완료되었습니다!");
   }).catch(() => {
-    alert("❌ 복사 실패 – 다시 시도해주세요.");
+    alert("❌ 복사에 실패했습니다.");
   });
 }
 </script>
