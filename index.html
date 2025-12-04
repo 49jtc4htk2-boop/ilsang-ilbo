@@ -42,14 +42,13 @@
 
 <h2>🦾 도전 일상 특전대! 일일보고 자동 계산기</h2>
 
-<!-- ✅ 조 선택 -->
 <div class="group-buttons">
   <strong>조 선택 :</strong>
-  <button onclick="selectGroup(1)">1조</button>
-  <button onclick="selectGroup(2)">2조</button>
-  <button onclick="selectGroup(3)">3조</button>
-  <button onclick="selectGroup(4)">4조</button>
-  <button onclick="selectGroup(5)">5조</button>
+  <button onclick="selectGroup(1, this)">1조</button>
+  <button onclick="selectGroup(2, this)">2조</button>
+  <button onclick="selectGroup(3, this)">3조</button>
+  <button onclick="selectGroup(4, this)">4조</button>
+  <button onclick="selectGroup(5, this)">5조</button>
 </div>
 
 <br>
@@ -64,16 +63,19 @@
 <script>
 let selectedGroup = "미선택";
 
-function selectGroup(num) {
+function selectGroup(num, btn) {
   selectedGroup = `${num}조`;
-  document.querySelectorAll(".group-buttons button").forEach(btn => {
-    btn.classList.remove("active");
+  document.querySelectorAll(".group-buttons button").forEach(b => {
+    b.classList.remove("active");
   });
-  event.target.classList.add("active");
+  btn.classList.add("active");
 }
 
 function processText() {
-  const lines = document.getElementById("input").value
+  const input = document.getElementById("input").value;
+  if (!input.trim()) return;
+
+  const lines = input
     .split("\n")
     .filter(line => line.trim() !== "");
 
@@ -85,7 +87,7 @@ function processText() {
     const parts = line.split("/");
     if (parts.length < 6) {
       result.push(line);
-      continue;
+      return;
     }
 
     const name = parts[0].trim();
@@ -95,7 +97,7 @@ function processText() {
     const top = parseFloat(parts[4]) || 0;
     const sex = parseFloat(parts[5]) || 0;
 
-    const score = find*1 + invite*2 + meet*3 + top*4 + sex*5;
+    const score = find + invite*2 + meet*3 + top*4 + sex*5;
 
     totalFind += find;
     totalInvite += invite;
@@ -114,7 +116,6 @@ function processText() {
     `합계/${totalFind}/${totalInvite}/${totalMeet}/${totalTop}/${totalSex}/${totalScore}`
   );
 
-  // ✅ 달성 / 미달 판단
   if (totalScore >= goalScore) {
     result.push(`✅ 달성 (${selectedGroup} | 목표 ${goalScore}점 / 달성 ${totalScore}점)`);
   } else {
