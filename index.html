@@ -52,7 +52,7 @@
 
 <br>
 
-<textarea id="input" placeholder="원본 일일보고 양식을 그대로 붙여넣으세요"></textarea>
+<textarea id="input" placeholder="일일보고 양식을 그대로 붙여넣으세요"></textarea>
 <br>
 
 <button onclick="processText()">결과 보기</button>
@@ -72,7 +72,6 @@ function selectGroup(label, btn) {
     .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
-
 function selectFinal(btn) {
   const now = new Date();
   selectedLabel = `${now.getMonth()+1}월 ${now.getDate()}일 최종`;
@@ -162,7 +161,6 @@ function processText() {
       ""
     );
   }
-
   document.getElementById("output").textContent = result.join("\n");
 
   const goal = people * 7;
